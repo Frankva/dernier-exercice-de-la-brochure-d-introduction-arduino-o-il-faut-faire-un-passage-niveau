@@ -89,8 +89,8 @@ class AutomaticMode: public Mode
     AutomaticMode(App *app);
     void invoke();
     void update();
-    void invokeAutomaticRedMode();
     void invokeAutomaticGreenMode();
+    void setCurrentMode(AutomaticModeName mode);
 };
 // AutomaticMode.h end
 
@@ -105,6 +105,17 @@ class ManualMode : public Mode
     void update();
 };
 // ManualMode.h end
+
+// AutomaticRedMode.h
+
+class AutomaticRedMode public Mode {
+  private:
+    App *app;
+  public:
+    void invoke();
+    void update();
+};
+// AutomaticRedMode.h end
 
 // LevelCrossingGate.cpp
 LevelCrossingGate::LevelCrossingGate() {
@@ -181,28 +192,12 @@ AutomaticMode::AutomaticMode(App *app)
 
 void AutomaticMode::invoke() {
   print("invokeAutomaticMode");
-  this->invokeAutomaticRedMode();
-  String answer = input("vert ou manuel ?");
-  if (answer == "vert") {
-    // TODO refactory that because call stack
-    invokeAutomaticGreenMode();
-    return;
-  }
-  if (answer == "manuel") {
-    this->app->setCurrentMode(manual);
-    return;
-  }
-  print("Données erronées");
-  this->app->setCurrentMode(failure);
-}
-void AutomaticMode::invokeAutomaticRedMode() {
-  print("Mode rouge");
-  digitalWrite(GREEN_LED, false);
-  digitalWrite(RED_LED, true);
-  this->app->getGate()->close();
+  this->setCurrentMode(redLight);
+  print("vert ou manuel ?");
 }
 
 void AutomaticMode::update() {
+  mode[currentMode]->update();
 }
 
 void AutomaticMode::invokeAutomaticGreenMode() {
@@ -223,6 +218,11 @@ void AutomaticMode::invokeAutomaticGreenMode() {
   print("Données erronées");
   this->app->setCurrentMode(failure);
 }
+void AutomaticMode::setCurrentMode(AutomaticModeName mode) {
+  this->currentMode = mode;
+  modes[currentMode]->invoke();
+}
+
 // AutomaticMode.cpp end
 
 // ManualMode.cpp
@@ -315,3 +315,39 @@ String input(String toPrint="") {
 }
 
 // helper.cpp end
+
+// AutomaticRedMode.cpp
+
+AutomaticRedMode::AutomaticRedMode(App *app) {
+  this->app = app;
+}
+
+AutomaticRedMode::invoke() {
+  print("Mode rouge");
+  digitalWrite(GREEN_LED, false);
+  digitalWrite(RED_LED, true);
+  this->app->getGate()->close();
+  this->currentMode = redLight;
+}
+
+AutomaticRedMode::update() {
+  if (Serial.available() == 0) {
+    return;
+  }
+  String answer = Serial.readStringUntil('\n');
+  if (answer == "vert") {
+    AutomaticMode *automaticMode = this->app->automaticMode;
+    automaticMode->setCurrentMode = greenLight;
+    // TODO refactory that because call stack
+    // invokeAutomaticGreenMode();
+    return;
+  }
+  if (answer == "manuel") {
+    this->app->setCurrentMode(manual);
+    return;
+  }
+  print("Données erronées");
+  this->app->setCurrentMode(failure);
+}
+
+// AutomaticRedMode.cpp end
