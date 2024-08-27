@@ -1,9 +1,11 @@
 #include <Servo.h>
 
 // helper.h
-void print(String toPrint="");
-void print(long numberToPrint);
+void print(String);
+void print();
+void print(long);
 String input(String toPrint="");
+String input();
 void blinkTwoLed();
 // helper.h end
 
@@ -25,7 +27,7 @@ class LevelCrossingGate
 
   public:
     LevelCrossingGate();
-    void levelCrossingGateOpen();
+    void open();
     void close();
 };
 // LevelCrossingGate.h end
@@ -54,7 +56,8 @@ class App
     App();
     void update();
     LevelCrossingGate *getGate();
-    void setCurrentMode(ModeName mode);
+    void setCurrentMode(ModeName);
+    Mode *getMode(ModeName);
 };
 
 // App.h end
@@ -66,7 +69,7 @@ class FailureMode : public Mode
     App *app;
     unsigned long lastExecutedMillis;
   public:
-    FailureMode(App *app);
+    FailureMode(App*);
     void invoke(); 
     void update(); 
     void blinkTwoLed();
@@ -84,13 +87,13 @@ class AutomaticMode: public Mode
   private:
     App *app;
     Mode *modes[AutomaticModeName::greenLight + 1];
-    AutomaticModeName currentMode:
+    AutomaticModeName currentMode;
   public:
-    AutomaticMode(App *app);
+    AutomaticMode(App*);
     void invoke();
     void update();
     void invokeAutomaticGreenMode();
-    void setCurrentMode(AutomaticModeName mode);
+    void setCurrentMode(AutomaticModeName);
 };
 // AutomaticMode.h end
 
@@ -100,7 +103,7 @@ class ManualMode : public Mode
   private:
     App *app;
   public:
-    ManualMode(App *app);
+    ManualMode(App*);
     void invoke();
     void update();
 };
@@ -108,14 +111,26 @@ class ManualMode : public Mode
 
 // AutomaticRedMode.h
 
-class AutomaticRedMode public Mode {
+class AutomaticRedMode: public Mode {
   private:
     App *app;
   public:
+    AutomaticRedMode(App*);
     void invoke();
     void update();
 };
 // AutomaticRedMode.h end
+
+// AutomaticGreenMode.h
+class AutomaticGreenMode: public Mode {
+  private:
+    App *app;
+  public:
+    AutomaticGreenMode(App*);
+    void invoke();
+    void update();
+};
+// AutomaticGreenMode.h end
 
 // LevelCrossingGate.cpp
 LevelCrossingGate::LevelCrossingGate() {
@@ -125,7 +140,7 @@ LevelCrossingGate::LevelCrossingGate() {
   this->servo = new Servo();
   this->servo->attach(5);
 }
-void LevelCrossingGate::levelCrossingGateOpen() {
+void LevelCrossingGate::open() {
   if (this->position == this->minimum) {
     return;
   }
@@ -151,7 +166,7 @@ FailureMode::FailureMode(App *app)
 void FailureMode::invoke() {
   print("invokeFailureMode");
   LevelCrossingGate *gate = this->app->getGate();
-  gate->levelCrossingGateOpen();
+  gate->open();
 }
 
 void FailureMode::update() {
@@ -197,7 +212,7 @@ void AutomaticMode::invoke() {
 }
 
 void AutomaticMode::update() {
-  mode[currentMode]->update();
+  this->modes[currentMode]->update();
 }
 
 void AutomaticMode::invokeAutomaticGreenMode() {
@@ -208,7 +223,7 @@ void AutomaticMode::invokeAutomaticGreenMode() {
   // TODO refactory that because call stack
   String answer = input("rouge ou manuel ?");
   if (answer == "rouge") {
-    invokeAutomaticRedMode();
+    // invokeAutomaticRedMode();
     return;
   }
   if (answer == "manuel") {
@@ -220,7 +235,7 @@ void AutomaticMode::invokeAutomaticGreenMode() {
 }
 void AutomaticMode::setCurrentMode(AutomaticModeName mode) {
   this->currentMode = mode;
-  modes[currentMode]->invoke();
+  this->modes[currentMode]->invoke();
 }
 
 // AutomaticMode.cpp end
@@ -265,7 +280,10 @@ LevelCrossingGate *App::getGate() {
 }
 void App::setCurrentMode(ModeName mode) {
   this->currentMode = mode;
-  modes[currentMode]->invoke();
+  this->modes[currentMode]->invoke();
+}
+Mode *App::getMode(ModeName mode) {
+  return this->modes[mode];
 }
 // App.cpp end
 
@@ -303,10 +321,18 @@ void print(String toPrint="") {
   Serial.println(toPrint);
 }
 
+void print() {
+  Serial.println("");
+}
+
 void print(long numberToPrint) {
   Serial.println(String(numberToPrint));
 }
 
+
+String input() {
+  input("");
+}
 
 String input(String toPrint="") {
   print(toPrint);
@@ -322,24 +348,21 @@ AutomaticRedMode::AutomaticRedMode(App *app) {
   this->app = app;
 }
 
-AutomaticRedMode::invoke() {
+void AutomaticRedMode::invoke() {
   print("Mode rouge");
   digitalWrite(GREEN_LED, false);
   digitalWrite(RED_LED, true);
   this->app->getGate()->close();
-  this->currentMode = redLight;
 }
 
-AutomaticRedMode::update() {
+void AutomaticRedMode::update() {
   if (Serial.available() == 0) {
     return;
   }
   String answer = Serial.readStringUntil('\n');
   if (answer == "vert") {
-    AutomaticMode *automaticMode = this->app->automaticMode;
-    automaticMode->setCurrentMode = greenLight;
-    // TODO refactory that because call stack
-    // invokeAutomaticGreenMode();
+    AutomaticMode *automaticMode = this->app->getMode(automatic);
+    automaticMode->setCurrentMode(greenLight);
     return;
   }
   if (answer == "manuel") {
@@ -351,3 +374,36 @@ AutomaticRedMode::update() {
 }
 
 // AutomaticRedMode.cpp end
+
+// AutomaticGreenMode.cpp
+
+AutomaticGreenMode::AutomaticGreenMode(App *app) {
+  this->app = app;
+}
+
+void AutomaticGreenMode::invoke() {
+  print("mode verte");
+  digitalWrite(RED_LED, false);
+  digitalWrite(GREEN_LED, true);
+  this->app->getGate()->open();
+}
+
+void AutomaticGreenMode::update() {
+  if (Serial.available() == 0) {
+    return;
+  }
+  String answer = Serial.readStringUntil('\n');
+  if (answer == "rouge") {
+    AutomaticMode *automaticMode = this->app->getMode(automatic);
+    automaticMode->setCurrentMode(redLight);
+    return;
+  }
+  if (answer == "manuel") {
+    this->app->setCurrentMode(manual);
+    return;
+  }
+  print("Données erronées");
+  this->app->setCurrentMode(failure);
+}
+
+// AutomaticGreenMode.cpp end
