@@ -92,20 +92,27 @@ class AutomaticMode: public Mode
     AutomaticMode(App*);
     void invoke();
     void update();
-    void invokeAutomaticGreenMode();
     void setCurrentMode(AutomaticModeName);
 };
 // AutomaticMode.h end
 
 // ManualMode.h
+
+typedef enum {
+  manualRedLight, manualGreenLight
+} ManualModeName;
+
 class ManualMode : public Mode
 {
   private:
     App *app;
+    Mode *modes[ManualModeName::manualGreenLight + 1];
+    ManualModeName currentMode;
   public:
     ManualMode(App*);
     void invoke();
     void update();
+    void setCurrentMode(ManualModeName);
 };
 // ManualMode.h end
 
@@ -132,6 +139,33 @@ class AutomaticGreenMode: public Mode {
 };
 // AutomaticGreenMode.h end
 
+// ManualRedMode.h
+
+class ManualRedMode: public Mode {
+  private: 
+    App *app;
+  public:
+    ManualRedMode(App*);
+    void invoke();
+    void update();
+
+};
+
+// ManualRedMode.h end
+
+// ManualGreenMode.h
+
+class ManualGreenMode: public Mode {
+  private:
+    App *app;
+  public:
+    ManualGreenMode(App*);
+    void invoke();
+    void update();
+};
+
+// ManualGreenMode.h end
+
 // LevelCrossingGate.cpp
 LevelCrossingGate::LevelCrossingGate() {
   this->minimum = 2;
@@ -148,7 +182,7 @@ void LevelCrossingGate::open() {
   this->servo->write(this->position);
 }
 void LevelCrossingGate::close() {
-  if (this->position == this->minimum) {
+  if (this->position == this->middle) {
     return;
   }
   this->position = this->middle;
@@ -203,36 +237,19 @@ void FailureMode::blinkTwoLed() {
 AutomaticMode::AutomaticMode(App *app)
 {
   this->app = app;
+  this->modes[redLight] = new AutomaticRedMode(this->app);
+  this->modes[greenLight] = new AutomaticGreenMode(this->app);
 }
 
 void AutomaticMode::invoke() {
   print("invokeAutomaticMode");
   this->setCurrentMode(redLight);
-  print("vert ou manuel ?");
 }
 
 void AutomaticMode::update() {
   this->modes[currentMode]->update();
 }
 
-void AutomaticMode::invokeAutomaticGreenMode() {
-  print("Mode vert");
-  digitalWrite(RED_LED, false);
-  digitalWrite(GREEN_LED, true);
-  this->app->getGate()->close();
-  // TODO refactory that because call stack
-  String answer = input("rouge ou manuel ?");
-  if (answer == "rouge") {
-    // invokeAutomaticRedMode();
-    return;
-  }
-  if (answer == "manuel") {
-    this->app->setCurrentMode(manual);
-    return;
-  }
-  print("Données erronées");
-  this->app->setCurrentMode(failure);
-}
 void AutomaticMode::setCurrentMode(AutomaticModeName mode) {
   this->currentMode = mode;
   this->modes[currentMode]->invoke();
@@ -244,12 +261,22 @@ void AutomaticMode::setCurrentMode(AutomaticModeName mode) {
 
 ManualMode::ManualMode(App *app) {
   this->app = app;
+  this->modes[manualRedLight] = new ManualRedMode(this->app);
+  this->modes[manualGreenLight] = new ManualGreenMode(this->app);
 }
 
 void ManualMode::invoke() {
+  print("mode manuel");
+  this->setCurrentMode(manualRedLight);
 }
 
 void ManualMode::update() {
+  this->modes[currentMode]->update();
+}
+
+void ManualMode::setCurrentMode(ManualModeName mode) {
+  this->currentMode = mode;
+  this->modes[currentMode]->invoke();
 }
 
 // ManualMode.cpp end
@@ -258,9 +285,6 @@ void ManualMode::update() {
 App::App() {
   print("App");
   gate = new LevelCrossingGate();
-  // FailureMode failureMode(this);
-  // AutomaticMode automaticMode();
-  // ManualMode manualMode(this);
   modes[failure] = new FailureMode(this);
   modes[automatic] = new AutomaticMode(this);
   modes[manual] = new ManualMode(this);
@@ -272,7 +296,6 @@ App::App() {
   print();
 }
 void App::update() {
-  print("App invoke");
   modes[currentMode]->update();
 }
 LevelCrossingGate *App::getGate() {
@@ -287,7 +310,7 @@ Mode *App::getMode(ModeName mode) {
 }
 // App.cpp end
 
-// main.cpp begin
+// main.cpp
 
 App *app; 
 
@@ -298,9 +321,7 @@ void setup() {
 } 
 
 void loop() {
-  print("loop");
   app->update();
-  print("loop end");
 } 
 
 void allumeLed(bool etatBouton) {
@@ -349,10 +370,11 @@ AutomaticRedMode::AutomaticRedMode(App *app) {
 }
 
 void AutomaticRedMode::invoke() {
-  print("Mode rouge");
+  print("Mode rouge automatique");
   digitalWrite(GREEN_LED, false);
   digitalWrite(RED_LED, true);
   this->app->getGate()->close();
+  print("vert ou manuel ?");
 }
 
 void AutomaticRedMode::update() {
@@ -386,6 +408,7 @@ void AutomaticGreenMode::invoke() {
   digitalWrite(RED_LED, false);
   digitalWrite(GREEN_LED, true);
   this->app->getGate()->open();
+  print("rouge ou manuel");
 }
 
 void AutomaticGreenMode::update() {
@@ -407,3 +430,65 @@ void AutomaticGreenMode::update() {
 }
 
 // AutomaticGreenMode.cpp end
+
+// ManualRedMode.cpp
+
+ManualRedMode::ManualRedMode (App *app) {
+  this->app = app;
+}
+
+void ManualRedMode::invoke() {
+  digitalWrite(GREEN_LED, false);
+  digitalWrite(RED_LED, true);
+  this->app->getGate()->close();
+  print("mode manuel feu rouge");
+}
+
+void ManualRedMode::update() {
+  bool signalBouton = digitalRead(BOUTON);
+  
+  if (signalBouton) {
+    print("le bouton est présé");
+    print(signalBouton);
+    ManualMode *manualMode = this->app->getMode(manual);
+    manualMode->setCurrentMode(manualGreenLight);
+    return;
+  }
+  if (Serial.available() == 0) {
+    return;
+  }
+  String answer = Serial.readStringUntil('\n');
+  if (answer == "a") {
+    this->app->setCurrentMode(automatic);
+    return;
+  }
+    print("donée erroné");
+    this->app->setCurrentMode(failure);
+  
+}
+
+// ManualRedMode.cpp end
+
+// ManualGreenMode.cpp
+
+ManualGreenMode::ManualGreenMode(App *app) {
+  this->app = app;
+}
+
+void ManualGreenMode::invoke() {
+  print("mode manuel feu vert");
+  digitalWrite(RED_LED, false);
+  digitalWrite(GREEN_LED, true);
+  this->app->getGate()->open();
+  // TODO test below
+  delay(10 * 1000);
+  print("mode feu rouge manuel");
+  ManualMode *manualMode = this->app->getMode(manual);
+  manualMode->setCurrentMode(manualRedLight);
+}
+
+void ManualGreenMode::update() {
+  // no update
+}
+
+// ManualGreenMode.cpp end
