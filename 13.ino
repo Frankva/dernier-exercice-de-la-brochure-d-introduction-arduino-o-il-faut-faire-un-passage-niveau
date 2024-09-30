@@ -446,10 +446,10 @@ void ManualRedMode::invoke() {
 
 void ManualRedMode::update() {
   bool signalBouton = digitalRead(BOUTON);
+  bool isButtonPress = !signalBouton;
   
-  if (signalBouton) {
+  if (isButtonPress) {
     print("le bouton est présé");
-    print(signalBouton);
     ManualMode *manualMode = this->app->getMode(manual);
     manualMode->setCurrentMode(manualGreenLight);
     return;
