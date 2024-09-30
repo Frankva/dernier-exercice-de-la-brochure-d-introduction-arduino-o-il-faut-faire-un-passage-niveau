@@ -6,6 +6,9 @@ It's for an Arduino UNO.
 
 Make the following circuit:
 
+![image](https://github.com/user-attachments/assets/859c4094-20a3-488d-9e4f-f39b922d6b19)
+
+
 Run with Arduino IDE or simulate with wokwi.com
 
 - Once launched, type 'a' in the serial monitor to switch to automatic mode.
