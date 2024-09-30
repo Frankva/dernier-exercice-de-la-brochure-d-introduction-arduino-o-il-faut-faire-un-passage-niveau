@@ -218,13 +218,13 @@ void FailureMode::update() {
 
 void FailureMode::blinkTwoLed() {
   unsigned long currentMillis = millis();
-  unsigned char interval = 255;
-  if (currentMillis - this->lastExecutedMillis >= interval) {
+  unsigned char resetInterval = 255;
+  unsigned char changeInterval = 127;
+  if (currentMillis - this->lastExecutedMillis >= resetInterval) {
     this->lastExecutedMillis = currentMillis;
     digitalWrite(RED_LED, true);
     digitalWrite(GREEN_LED, true);
-  }
-  else {
+  } else if (currentMillis - this->lastExecutedMillis >= changeInterval) {
     digitalWrite(RED_LED, false);
     digitalWrite(GREEN_LED, false);
   }
