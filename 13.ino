@@ -198,7 +198,7 @@ FailureMode::FailureMode(App *app)
 }
 
 void FailureMode::invoke() {
-  print("invokeFailureMode");
+  // print("invokeFailureMode");
   LevelCrossingGate *gate = this->app->getGate();
   gate->open();
 }
@@ -242,7 +242,7 @@ AutomaticMode::AutomaticMode(App *app)
 }
 
 void AutomaticMode::invoke() {
-  print("invokeAutomaticMode");
+  // print("invokeAutomaticMode");
   this->setCurrentMode(redLight);
 }
 
@@ -266,7 +266,7 @@ ManualMode::ManualMode(App *app) {
 }
 
 void ManualMode::invoke() {
-  print("mode manuel");
+  // print("mode manuel");
   this->setCurrentMode(manualRedLight);
 }
 
@@ -283,7 +283,7 @@ void ManualMode::setCurrentMode(ManualModeName mode) {
 
 // App.cpp
 App::App() {
-  print("App");
+  // print("App");
   gate = new LevelCrossingGate();
   modes[failure] = new FailureMode(this);
   modes[automatic] = new AutomaticMode(this);
@@ -315,9 +315,9 @@ Mode *App::getMode(ModeName mode) {
 App *app; 
 
 void setup() {
-  print("setup");
+  // print("setup");
   app = new App;
-  print("setup end");
+  // print("setup end");
 } 
 
 void loop() {
@@ -370,7 +370,7 @@ AutomaticRedMode::AutomaticRedMode(App *app) {
 }
 
 void AutomaticRedMode::invoke() {
-  print("Mode rouge automatique");
+  print("Mode  automatique, feu rouge");
   digitalWrite(GREEN_LED, false);
   digitalWrite(RED_LED, true);
   this->app->getGate()->close();
@@ -404,7 +404,7 @@ AutomaticGreenMode::AutomaticGreenMode(App *app) {
 }
 
 void AutomaticGreenMode::invoke() {
-  print("mode verte");
+  print("mode  automatique, feu vert");
   digitalWrite(RED_LED, false);
   digitalWrite(GREEN_LED, true);
   this->app->getGate()->open();
@@ -441,7 +441,7 @@ void ManualRedMode::invoke() {
   digitalWrite(GREEN_LED, false);
   digitalWrite(RED_LED, true);
   this->app->getGate()->close();
-  print("mode manuel feu rouge");
+  print("mode manuel, feu rouge");
 }
 
 void ManualRedMode::update() {
@@ -449,7 +449,7 @@ void ManualRedMode::update() {
   bool isButtonPress = !signalBouton;
   
   if (isButtonPress) {
-    print("le bouton est présé");
+    // print("Le bouton est présé");
     ManualMode *manualMode = this->app->getMode(manual);
     manualMode->setCurrentMode(manualGreenLight);
     return;
@@ -462,7 +462,7 @@ void ManualRedMode::update() {
     this->app->setCurrentMode(automatic);
     return;
   }
-    print("donée erroné");
+  print("Données erronées");
     this->app->setCurrentMode(failure);
   
 }
@@ -476,13 +476,12 @@ ManualGreenMode::ManualGreenMode(App *app) {
 }
 
 void ManualGreenMode::invoke() {
-  print("mode manuel feu vert");
+  print("mode manuel, feu vert");
   digitalWrite(RED_LED, false);
   digitalWrite(GREEN_LED, true);
   this->app->getGate()->open();
   // TODO test below
   delay(10 * 1000);
-  print("mode feu rouge manuel");
   ManualMode *manualMode = this->app->getMode(manual);
   manualMode->setCurrentMode(manualRedLight);
 }
